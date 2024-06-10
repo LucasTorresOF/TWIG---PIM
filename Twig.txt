@@ -1,0 +1,406 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public abstract class Produto{
+    public int Id { get; set; }
+    public string Nome { get; set; }
+    public decimal Preco { get; set; }
+    public string Categoria { get; set; }
+    public int NivelPotencia { get; set; }
+    public Produto(int id, string nome, decimal preco, string categoria, int nivelPotencia){
+        Id = id;
+        Nome = nome;
+        Preco = preco;
+        Categoria = categoria;
+        NivelPotencia = nivelPotencia;
+    }
+    public abstract void ExibirDetalhes();
+}
+
+public class Componente : Produto{
+    public string Especificacao { get; set; }
+    public Componente(int id, string nome, decimal preco, string especificacao, string categoria, int nivelPotencia): base(id, nome, preco, categoria, nivelPotencia){
+        Especificacao = especificacao;
+    }
+    public override void ExibirDetalhes(){
+        Console.WriteLine($"Componente: {Nome} | Preço: {Preco:C} | Especificação: {Especificacao} | Categoria: {Categoria} | Nível: {NivelPotencia}");
+    }
+}
+
+public class Periferico : Produto{
+    public string Tipo { get; set; }
+    public Periferico(int id, string nome, decimal preco, string tipo, string categoria, int nivelPotencia): base(id, nome, preco, categoria, nivelPotencia){
+        Tipo = tipo;
+    }
+    public override void ExibirDetalhes(){
+        Console.WriteLine($"Periférico: {Nome} | Preço: {Preco:C} | Tipo: {Tipo} | Categoria: {Categoria} | Nível: {NivelPotencia}");
+    }
+}
+
+public class Estoque{
+    private List<Produto> produtos = new List<Produto>();
+    public void AdicionarProduto(Produto produto){
+        produtos.Add(produto);
+    }
+    public void RemoverProduto(int id){
+        produtos.RemoveAll(p => p.Id == id);
+    }
+    public Produto ObterProdutoPorId(int id){
+        return produtos.Find(p => p.Id == id);
+    }
+    public Produto ObterProdutoPorNome(string nome){
+        return produtos.Find(p => p.Nome.Equals(nome, StringComparison.OrdinalIgnoreCase));
+    }
+    public int ObterProximoId(){
+        return produtos.Count > 0 ? produtos.Max(p => p.Id) + 1 : 1;
+    }
+    public void ListarProdutos(){
+        foreach (var produto in produtos){
+            produto.ExibirDetalhes();
+        }
+    }
+    public void ListarProdutosPorCategoria(string categoria){
+        var produtosFiltrados = produtos.Where(p => p.Categoria.Equals(categoria, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (produtosFiltrados.Count == 0){
+            Console.WriteLine($"Nenhum produto encontrado na categoria: {categoria}");
+        }
+        else{
+            Console.WriteLine($"Produtos na categoria: {categoria}");
+            foreach (var produto in produtosFiltrados){
+                produto.ExibirDetalhes();
+            }
+        }
+    }
+    public void ListarProdutosPorNivel(int nivel){
+        var produtosFiltrados = produtos.Where(p => p.NivelPotencia == nivel).ToList();
+        if (produtosFiltrados.Count == 0){
+            Console.WriteLine($"Nenhum produto encontrado no nível: {nivel}");
+        }
+        else{
+            Console.WriteLine($"Produtos no nível: {nivel}");
+            foreach (var produto in produtosFiltrados){
+                produto.ExibirDetalhes();
+            }
+        }
+    }
+    public List<Produto> ObterProdutosPorCategoria(string categoria){
+        return produtos.Where(p => p.Categoria.Equals(categoria, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+    public List<Produto> ObterProdutosPorNivel(int nivel){
+        return produtos.Where(p => p.NivelPotencia == nivel).ToList();
+    }
+}
+
+public class Venda{
+    private List<Produto> itensVendidos = new List<Produto>();
+    private Estoque estoque;
+    public Venda(Estoque estoque){
+        this.estoque = estoque;
+    }
+    public void AdicionarItem(int idProduto){
+        var produto = estoque.ObterProdutoPorId(idProduto);
+        if (produto != null){
+            itensVendidos.Add(produto);
+            estoque.RemoverProduto(idProduto);
+        }
+        else{
+            Console.WriteLine("Produto não encontrado no estoque.");
+        }
+    }
+    public void FinalizarVenda(){
+        decimal total = 0;
+        foreach (var item in itensVendidos){
+            total += item.Preco;
+        }
+        Console.WriteLine($"Total da venda: {total:C}");
+    }
+    public void ListarItensVendidos(){
+        foreach (var item in itensVendidos){
+            item.ExibirDetalhes();
+        }
+    }
+}
+
+public class Carrinho{
+    private List<Produto> itens = new List<Produto>();
+    public void AdicionarItem(Produto produto){
+        itens.Add(produto);
+    }
+    public void RemoverItem(int id){
+        itens.RemoveAll(p => p.Id == id);
+    }
+    public void ListarItens(){
+        if (itens.Count == 0){
+            Console.WriteLine("O carrinho está vazio.");
+        }
+        else{
+            Console.WriteLine("Itens no carrinho:");
+            foreach (var item in itens){
+                item.ExibirDetalhes();
+            }
+        }
+    }
+    public void FinalizarCompra(){
+        decimal total = 0;
+        foreach (var item in itens){
+            total += item.Preco;
+        }
+        Console.WriteLine($"Total da compra: {total:C}");
+        itens.Clear();
+    }
+    public List<Produto> GetItens(){
+        return itens;
+    }
+}
+
+public abstract class Usuario{
+    public string Nome { get; set; }
+    public string Senha { get; set; }
+    public Usuario(string nome, string senha){
+        Nome = nome;
+        Senha = senha;
+    }
+    public abstract void ExibirMenu(Estoque estoque);
+}
+
+public class Funcionario : Usuario{
+    public Funcionario(string nome, string senha): base(nome, senha){
+    }
+    public override void ExibirMenu(Estoque estoque){
+        while (true){
+            Console.WriteLine("Bem-vindo, Funcionário!");
+            Console.WriteLine("1. Listar Produtos");
+            Console.WriteLine("2. Adicionar Produto");
+            Console.WriteLine("3. Remover Produto");
+            Console.WriteLine("4. Listar Produtos por Categoria");
+            Console.WriteLine("5. Listar Produtos por Nível de Potência");
+            Console.WriteLine("6. Sair");
+            int opcao = int.Parse(Console.ReadLine());
+            switch (opcao){
+                case 1:
+                    estoque.ListarProdutos();
+                    break;
+                case 2:
+                    AdicionarProduto(estoque);
+                    break;
+                case 3:
+                    RemoverProduto(estoque);
+                    break;
+                case 4:
+                    FiltrarPorCategoria(estoque);
+                    break;
+                case 5:
+                    FiltrarPorNivel(estoque);
+                    break;
+                case 6:
+                    Console.WriteLine("Saindo...");
+                    return;
+            }
+        }
+    }
+    private void AdicionarProduto(Estoque estoque){
+        Console.WriteLine("Adicionar Produto:");
+        Console.Write("Nome: ");
+        string nome = Console.ReadLine();
+        Console.Write("Preço: ");
+        decimal preco = decimal.Parse(Console.ReadLine());
+        Console.Write("Categoria (Placa de Vídeo, Processador, etc.): ");
+        string categoria = Console.ReadLine();
+        Console.Write("Especificação/Tipo: ");
+        string especificacao = Console.ReadLine();
+        Console.Write("Nível de Potência (1=Xuxa, 2=Batata, 3=Entrada, 4=Potente, 5=PC da Nasa): ");
+        int nivelPotencia = int.Parse(Console.ReadLine());
+        Produto produto;
+        if (categoria.ToLower() == "placa de vídeo" || categoria.ToLower() == "processador" || categoria.ToLower() == "memória ram" || categoria.ToLower() == "fonte" || categoria.ToLower() == "gabinete"){
+            produto = new Componente(estoque.ObterProximoId(), nome, preco, especificacao, categoria, nivelPotencia);
+        }
+        else{
+            produto = new Periferico(estoque.ObterProximoId(), nome, preco, especificacao, categoria, nivelPotencia);
+        }
+        estoque.AdicionarProduto(produto);
+        Console.WriteLine("Produto adicionado com sucesso!");
+    }
+    private void RemoverProduto(Estoque estoque){
+        Console.WriteLine("Remover Produto:");
+        Console.Write("ID do Produto: ");
+        int id = int.Parse(Console.ReadLine());
+        estoque.RemoverProduto(id);
+        Console.WriteLine("Produto removido com sucesso!");
+    }
+    private void FiltrarPorCategoria(Estoque estoque){
+        Console.WriteLine("Filtrar Produtos por Categoria:");
+        Console.Write("Categoria: ");
+        string categoria = Console.ReadLine();
+        estoque.ListarProdutosPorCategoria(categoria);
+    }
+    private void FiltrarPorNivel(Estoque estoque){
+        Console.WriteLine("Filtrar Produtos por Nível de Potência:");
+        Console.Write("Nível de Potência (1=Xuxa, 2=Batata, 3=Entrada, 4=Potente, 5=PC da Nasa): ");
+        int nivel = int.Parse(Console.ReadLine());
+        estoque.ListarProdutosPorNivel(nivel);
+    }
+}
+
+public class Cliente : Usuario{
+    public Cliente(string nome, string senha): base(nome, senha){}
+    public override void ExibirMenu(Estoque estoque){
+        var carrinho = new Carrinho();
+        while (true){
+            Console.WriteLine("Bem-vindo, Cliente!");
+            Console.WriteLine("1. Listar Produtos");
+            Console.WriteLine("2. Filtrar Produtos por Categoria");
+            Console.WriteLine("3. Filtrar Produtos por Nível de Potência");
+            Console.WriteLine("4. Adicionar Produto ao Carrinho");
+            Console.WriteLine("5. Remover Produto do Carrinho");
+            Console.WriteLine("6. Listar Itens do Carrinho");
+            Console.WriteLine("7. Finalizar Compra");
+            Console.WriteLine("8. Recomendar Peças para Montagem");
+            Console.WriteLine("9. Sair");
+            int opcao = int.Parse(Console.ReadLine());
+            switch (opcao){
+                case 1:
+                    estoque.ListarProdutos();
+                    break;
+                case 2:
+                    FiltrarPorCategoria(estoque);
+                    break;
+                case 3:
+                    FiltrarPorNivel(estoque);
+                    break;
+                case 4:
+                    AdicionarAoCarrinho(estoque, carrinho);
+                    break;
+                case 5:
+                    RemoverDoCarrinho(carrinho);
+                    break;
+                case 6:
+                    carrinho.ListarItens();
+                    break;
+                case 7:
+                    carrinho.FinalizarCompra();
+                    break;
+                case 8:
+                    RecomendarPecas(estoque, carrinho);
+                    break;
+                case 9:
+                    Console.WriteLine("Saindo...");
+                    return;
+            }
+        }
+    }
+    private void FiltrarPorCategoria(Estoque estoque){
+        Console.WriteLine("Filtrar Produtos por Categoria:");
+        Console.Write("Categoria: ");
+        string categoria = Console.ReadLine();
+        estoque.ListarProdutosPorCategoria(categoria);
+    }
+    private void FiltrarPorNivel(Estoque estoque){
+        Console.WriteLine("Filtrar Produtos por Nível de Potência:");
+        Console.Write("Nível de Potência (1=Xuxa, 2=Batata, 3=Entrada, 4=Potente, 5=PC da Nasa): ");
+        int nivel = int.Parse(Console.ReadLine());
+        estoque.ListarProdutosPorNivel(nivel);
+    }
+    private void AdicionarAoCarrinho(Estoque estoque, Carrinho carrinho){
+        Console.WriteLine("Adicionar Produto ao Carrinho:");
+        Console.Write("Nome do Produto: ");
+        string nome = Console.ReadLine();
+        var produto = estoque.ObterProdutoPorNome(nome);
+        if (produto != null){
+            carrinho.AdicionarItem(produto);
+            Console.WriteLine("Produto adicionado ao carrinho!");
+        }
+        else{
+            Console.WriteLine("Produto não encontrado.");
+        }
+    }
+    private void RemoverDoCarrinho(Carrinho carrinho){
+        Console.WriteLine("Remover Produto do Carrinho:");
+        Console.Write("ID do Produto: ");
+        int id = int.Parse(Console.ReadLine());
+        carrinho.RemoverItem(id);
+        Console.WriteLine("Produto removido do carrinho!");
+    }
+    private void RecomendarPecas(Estoque estoque, Carrinho carrinho){
+        Console.WriteLine("Recomendar Peças para Montagem:");
+        Console.Write("Nome do Produto Base: ");
+        string nome = Console.ReadLine();
+        var produtoBase = estoque.ObterProdutoPorNome(nome);
+        if (produtoBase != null){
+            List<Produto> recomendacoes = new List<Produto>();
+            int nivelPotencia = produtoBase.NivelPotencia;
+            if (produtoBase.Nome.Contains("GTX 1050")){
+                recomendacoes.AddRange(estoque.ObterProdutosPorCategoria("Processador").Where(p => p.NivelPotencia == nivelPotencia));
+                recomendacoes.AddRange(estoque.ObterProdutosPorCategoria("Placa Mãe").Where(p => p.NivelPotencia == nivelPotencia));
+                recomendacoes.AddRange(estoque.ObterProdutosPorCategoria("Memória RAM").Where(p => p.NivelPotencia == nivelPotencia));
+                recomendacoes.AddRange(estoque.ObterProdutosPorCategoria("Fonte").Where(p => p.NivelPotencia == nivelPotencia));
+                recomendacoes.AddRange(estoque.ObterProdutosPorCategoria("Gabinete").Where(p => p.NivelPotencia == nivelPotencia));
+            }
+            if (recomendacoes.Count > 0){
+                Console.WriteLine("Peças recomendadas:");
+                foreach (var rec in recomendacoes){
+                    rec.ExibirDetalhes();
+                }
+            }
+            else{
+                Console.WriteLine("Nenhuma recomendação disponível para este produto.");
+            }
+        }
+        else{
+            Console.WriteLine("Produto base não encontrado.");
+        }
+    }
+}
+
+public class Programa{
+    static List<Usuario> usuarios = new List<Usuario>();
+    static Estoque estoque = new Estoque();
+    public static void Main(){
+        usuarios.Add(new Funcionario("admin", "admin"));
+        usuarios.Add(new Cliente("cliente", "cliente"));
+        estoque.AdicionarProduto(new Componente(1, "GTX 1050", 999.99m, "4GB GDDR5", "Placa de Vídeo", 3));
+        estoque.AdicionarProduto(new Componente(2, "i7 7700", 1299.99m, "3.6GHz", "Processador", 3));
+        estoque.AdicionarProduto(new Componente(3, "Placa Mãe XYZ", 599.99m, "Socket LGA 1151", "Placa Mãe", 3));
+        estoque.AdicionarProduto(new Componente(4, "Memória RAM 16GB", 499.99m, "DDR4", "Memória RAM", 3));
+        estoque.AdicionarProduto(new Componente(5, "Fonte 500W", 299.99m, "80 Plus Bronze", "Fonte", 3));
+        estoque.AdicionarProduto(new Componente(6, "Gabinete ATX", 199.99m, "Mid Tower", "Gabinete", 3));
+        Console.WriteLine("Bem-vindo ao sistema!");
+        while (true){
+            Console.WriteLine("1. Login");
+            Console.WriteLine("2. Cadastrar Cliente");
+            Console.WriteLine("3. Sair");
+            int opcao = int.Parse(Console.ReadLine());
+            if (opcao == 1){
+                Console.Write("Nome: ");
+                string nome = Console.ReadLine();
+                Console.Write("Senha: ");
+                string senha = Console.ReadLine();
+                var usuario = usuarios.SingleOrDefault(u => u.Nome == nome && u.Senha == senha);
+                if (usuario != null){
+                    usuario.ExibirMenu(estoque);
+                }
+                else{
+                    Console.WriteLine("Nome ou senha incorretos.");
+                }
+            }
+            else if (opcao == 2){
+                Console.WriteLine("Cadastro de Cliente:");
+                Console.Write("Nome: ");
+                string nome = Console.ReadLine();
+                Console.Write("Senha: ");
+                string senha = Console.ReadLine();
+                if (usuarios.Any(u => u.Nome == nome)){
+                    Console.WriteLine("Usuário já existe.");
+                }
+                else{
+                    usuarios.Add(new Cliente(nome, senha));
+                    Console.WriteLine("Cliente cadastrado com sucesso!");
+                }
+            }
+            else if (opcao == 3){
+                Console.WriteLine("Saindo...");
+                break;
+            }
+        }
+    }
+}
